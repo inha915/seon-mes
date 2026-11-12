@@ -1,0 +1,415 @@
+// 세온산업 MES 데이터 모델
+// 모든 데이터는 포트폴리오용 가상 데이터입니다.
+//
+// 도메인: 기준정보(Partner, Item, BomLine) · 영업(SalesOrder, Shipment) · 생산(WorkOrder, ProductionResult)
+//        재고(Receipt, Lot, InventoryTransaction) · 결재(ApprovalRequest) · 설비(Equipment) · 시스템(User, SystemSetting)
+
+generator client {
+  provider      = "prisma-client-js"
+  // native: 로컬 개발 환경, rhel-openssl-3.0.x: Netlify Functions(AWS Lambda, Amazon Linux 2023)
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── 코드 (DB 에는 고정 코드로 저장하고 화면 문구는 프론트 번역 리소스에서 매핑) ─────────────
+
+enum ItemType {
+  RAW // 원자재
+  FINISHED // 완제품
+}
+
+enum PartnerType {
+  SUPPLIER // 공급사 (원자재 입고)
+  CUSTOMER // 고객사 (수주·출하)
+  BOTH
+}
+
+enum WorkOrderStatus {
+  PLANNED // 작업 대기 (실적 미확정)
+  COMPLETED // 실적 확정 완료
+}
+
+enum InventoryTxType {
+  MATERIAL_RECEIPT // 원자재 입고 (+)
+  PRODUCTION_ISSUE // 생산 투입 출고 (-)
+  PRODUCTION_RECEIPT // 완제품 생산 입고 (+)
+  SHIPMENT // 완제품 출하 (-)
+}
+
+enum SalesOrderStatus {
+  OPEN // 접수
+  IN_PRODUCTION // 작업지시 발행
+  PARTIALLY_SHIPPED // 부분 출하
+  SHIPPED // 출하 완료
+}
+
+enum ApprovalDocType {
+  PRODUCTION_RESULT // 생산실적 확정
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum EquipmentProcess {
+  CUTTING // 강판 절단
+  PRESSING // 프레스 성형
+  INSPECTION // 검사
+}
+
+enum EquipmentStatus {
+  RUNNING // 가동
+  IDLE // 대기
+  MAINTENANCE // 정비 중
+  BREAKDOWN // 고장
+}
+
+enum EquipmentLogType {
+  STATUS_CHANGE
+  INSPECTION // 점검
+  REPAIR // 수리
+}
+
+enum UserRole {
+  OPERATOR // 작업자
+  MANAGER // 팀장 (결재 승인)
+  ADMIN // 시스템 관리자
+}
+
+// ─── 기준정보 ────────────────────────────────────────────────────────────────
+
+/// 거래처 (공급사 / 고객사)
+model Partner {
+  id          Int          @id @default(autoincrement())
+  code        String       @unique
+  name        String
+  type        PartnerType  @default(SUPPLIER)
+  businessNo  String?      @map("business_no")
+  contactName String?      @map("contact_name")
+  phone       String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  receipts    Receipt[]
+  salesOrders SalesOrder[]
+
+  @@map("partners")
+}
+
+/// 품목 (원자재 / 완제품)
+model Item {
+  id           Int                    @id @default(autoincrement())
+  code         String                 @unique
+  name         String
+  type         ItemType
+  unit         String
+  spec         String?
+  createdAt    DateTime               @default(now()) @map("created_at")
+  bomLines     BomLine[]              @relation("BomParent")
+  usedInBoms   BomLine[]              @relation("BomComponent")
+  lots         Lot[]
+  receipts     Receipt[]
+  workOrders   WorkOrder[]
+  salesOrders  SalesOrder[]
+  transactions InventoryTransaction[]
+
+  @@index([type])
+  @@map("items")
+}
+
+/// BOM: 완제품 1개당 원자재 기준 소요량
+model BomLine {
+  id          Int     @id @default(autoincrement())
+  parentId    Int     @map("parent_id")
+  componentId Int     @map("component_id")
+  qtyPer      Decimal @map("qty_per") @db.Decimal(14, 3)
+  parent      Item    @relation("BomParent", fields: [parentId], references: [id], onDelete: Cascade)
+  component   Item    @relation("BomComponent", fields: [componentId], references: [id])
+
+  @@unique([parentId, componentId])
+  @@map("bom_lines")
+}
+
+// ─── 재고 ────────────────────────────────────────────────────────────────────
+
+/// LOT: 원자재 입고 LOT 또는 완제품 생산 LOT.
+/// qty 는 현재고이며 마이그레이션의 CHECK(qty >= 0) 제약으로 음수를 막습니다.
+model Lot {
+  id               Int                    @id @default(autoincrement())
+  lotNo            String                 @unique @map("lot_no")
+  itemId           Int                    @map("item_id")
+  initialQty       Decimal                @map("initial_qty") @db.Decimal(14, 3)
+  qty              Decimal                @db.Decimal(14, 3)
+  createdAt        DateTime               @default(now()) @map("created_at")
+  item             Item                   @relation(fields: [itemId], references: [id])
+  receipt          Receipt?
+  productionResult ProductionResult?      @relation("FinishedLot")
+  consumptions     MaterialConsumption[]
+  shipmentLines    ShipmentLine[]
+  transactions     InventoryTransaction[]
+
+  @@index([itemId])
+  @@map("lots")
+}
+
+/// 원자재 입고. 입고 1건당 내부 LOT 1개를 발급합니다.
+model Receipt {
+  id            Int                    @id @default(autoincrement())
+  receiptNo     String                 @unique @map("receipt_no")
+  partnerId     Int                    @map("partner_id")
+  itemId        Int                    @map("item_id")
+  lotId         Int                    @unique @map("lot_id")
+  receiptDate   DateTime               @map("receipt_date") @db.Date
+  qty           Decimal                @db.Decimal(14, 3)
+  supplierLotNo String?                @map("supplier_lot_no")
+  note          String?
+  createdAt     DateTime               @default(now()) @map("created_at")
+  partner       Partner                @relation(fields: [partnerId], references: [id])
+  item          Item                   @relation(fields: [itemId], references: [id])
+  lot           Lot                    @relation(fields: [lotId], references: [id])
+  transactions  InventoryTransaction[]
+
+  @@index([receiptDate])
+  @@map("receipts")
+}
+
+/// 수불 이력. qty 는 부호 있는 변동 수량, balanceAfter 는 처리 직후 LOT 잔량입니다.
+model InventoryTransaction {
+  id                 Int               @id @default(autoincrement())
+  type               InventoryTxType
+  itemId             Int               @map("item_id")
+  lotId              Int               @map("lot_id")
+  qty                Decimal           @db.Decimal(14, 3)
+  balanceAfter       Decimal           @map("balance_after") @db.Decimal(14, 3)
+  receiptId          Int?              @map("receipt_id")
+  productionResultId Int?              @map("production_result_id")
+  shipmentId         Int?              @map("shipment_id")
+  occurredAt         DateTime          @default(now()) @map("occurred_at")
+  item               Item              @relation(fields: [itemId], references: [id])
+  lot                Lot               @relation(fields: [lotId], references: [id])
+  receipt            Receipt?          @relation(fields: [receiptId], references: [id])
+  productionResult   ProductionResult? @relation(fields: [productionResultId], references: [id])
+  shipment           Shipment?         @relation(fields: [shipmentId], references: [id])
+
+  @@index([lotId, occurredAt])
+  @@index([occurredAt])
+  @@map("inventory_transactions")
+}
+
+// ─── 영업 ────────────────────────────────────────────────────────────────────
+
+/// 수주 (1수주 1품목)
+model SalesOrder {
+  id         Int              @id @default(autoincrement())
+  orderNo    String           @unique @map("order_no")
+  customerId Int              @map("customer_id")
+  itemId     Int              @map("item_id")
+  qty        Int
+  orderDate  DateTime         @map("order_date") @db.Date
+  dueDate    DateTime         @map("due_date") @db.Date
+  status     SalesOrderStatus @default(OPEN)
+  note       String?
+  createdAt  DateTime         @default(now()) @map("created_at")
+  customer   Partner          @relation(fields: [customerId], references: [id])
+  item       Item             @relation(fields: [itemId], references: [id])
+  workOrders WorkOrder[]
+  shipments  Shipment[]
+
+  @@index([status])
+  @@map("sales_orders")
+}
+
+/// 출하. 완제품 LOT 별 출하 수량은 ShipmentLine 에 기록합니다.
+model Shipment {
+  id           Int                    @id @default(autoincrement())
+  shipmentNo   String                 @unique @map("shipment_no")
+  salesOrderId Int                    @map("sales_order_id")
+  shipDate     DateTime               @map("ship_date") @db.Date
+  qty          Int
+  note         String?
+  createdById  Int?                   @map("created_by_id")
+  createdAt    DateTime               @default(now()) @map("created_at")
+  salesOrder   SalesOrder             @relation(fields: [salesOrderId], references: [id])
+  createdBy    User?                  @relation(fields: [createdById], references: [id])
+  lines        ShipmentLine[]
+  transactions InventoryTransaction[]
+
+  @@index([shipDate])
+  @@map("shipments")
+}
+
+model ShipmentLine {
+  id         Int      @id @default(autoincrement())
+  shipmentId Int      @map("shipment_id")
+  lotId      Int      @map("lot_id")
+  qty        Decimal  @db.Decimal(14, 3)
+  shipment   Shipment @relation(fields: [shipmentId], references: [id])
+  lot        Lot      @relation(fields: [lotId], references: [id])
+
+  @@unique([shipmentId, lotId])
+  @@index([lotId])
+  @@map("shipment_lines")
+}
+
+// ─── 생산 ────────────────────────────────────────────────────────────────────
+
+/// 작업지시
+model WorkOrder {
+  id               Int               @id @default(autoincrement())
+  workOrderNo      String            @unique @map("work_order_no")
+  itemId           Int               @map("item_id")
+  plannedQty       Int               @map("planned_qty")
+  workDate         DateTime          @map("work_date") @db.Date
+  status           WorkOrderStatus   @default(PLANNED)
+  salesOrderId     Int?              @map("sales_order_id")
+  equipmentId      Int?              @map("equipment_id")
+  note             String?
+  createdAt        DateTime          @default(now()) @map("created_at")
+  completedAt      DateTime?         @map("completed_at")
+  item             Item              @relation(fields: [itemId], references: [id])
+  salesOrder       SalesOrder?       @relation(fields: [salesOrderId], references: [id])
+  equipment        Equipment?        @relation(fields: [equipmentId], references: [id])
+  productionResult ProductionResult?
+  approvals        ApprovalRequest[]
+
+  @@index([status])
+  @@index([salesOrderId])
+  @@map("work_orders")
+}
+
+/// 생산실적. work_order_id UNIQUE 로 같은 작업지시의 중복 확정을 DB 차원에서 막습니다.
+model ProductionResult {
+  id            Int                    @id @default(autoincrement())
+  resultNo      String                 @unique @map("result_no")
+  workOrderId   Int                    @unique @map("work_order_id")
+  goodQty       Int                    @map("good_qty")
+  defectQty     Int                    @map("defect_qty")
+  finishedLotId Int?                   @unique @map("finished_lot_id")
+  note          String?
+  confirmedAt   DateTime               @default(now()) @map("confirmed_at")
+  workOrder     WorkOrder              @relation(fields: [workOrderId], references: [id])
+  finishedLot   Lot?                   @relation("FinishedLot", fields: [finishedLotId], references: [id])
+  consumptions  MaterialConsumption[]
+  transactions  InventoryTransaction[]
+  approval      ApprovalRequest?
+
+  @@index([confirmedAt])
+  @@map("production_results")
+}
+
+/// 생산실적별 원자재 LOT 실제 사용량
+model MaterialConsumption {
+  id                 Int              @id @default(autoincrement())
+  productionResultId Int              @map("production_result_id")
+  lotId              Int              @map("lot_id")
+  qty                Decimal          @db.Decimal(14, 3)
+  productionResult   ProductionResult @relation(fields: [productionResultId], references: [id])
+  lot                Lot              @relation(fields: [lotId], references: [id])
+
+  @@unique([productionResultId, lotId])
+  @@index([lotId])
+  @@map("material_consumptions")
+}
+
+// ─── 결재 ────────────────────────────────────────────────────────────────────
+
+/// 결재 요청. 생산실적은 승인 시점에 확정 트랜잭션을 실행합니다.
+/// 작업지시당 PENDING 요청은 하나만 허용합니다 (마이그레이션의 부분 UNIQUE 인덱스).
+model ApprovalRequest {
+  id                 Int               @id @default(autoincrement())
+  requestNo          String            @unique @map("request_no")
+  docType            ApprovalDocType   @map("doc_type")
+  workOrderId        Int               @map("work_order_id")
+  payload            Json
+  status             ApprovalStatus    @default(PENDING)
+  requesterId        Int               @map("requester_id")
+  approverId         Int?              @map("approver_id")
+  comment            String?
+  requestedAt        DateTime          @default(now()) @map("requested_at")
+  decidedAt          DateTime?         @map("decided_at")
+  productionResultId Int?              @unique @map("production_result_id")
+  workOrder          WorkOrder         @relation(fields: [workOrderId], references: [id])
+  requester          User              @relation("ApprovalRequester", fields: [requesterId], references: [id])
+  approver           User?             @relation("ApprovalApprover", fields: [approverId], references: [id])
+  productionResult   ProductionResult? @relation(fields: [productionResultId], references: [id])
+
+  @@index([status, requestedAt])
+  @@map("approval_requests")
+}
+
+// ─── 설비 ────────────────────────────────────────────────────────────────────
+
+model Equipment {
+  id          Int              @id @default(autoincrement())
+  code        String           @unique
+  name        String
+  process     EquipmentProcess
+  status      EquipmentStatus  @default(IDLE)
+  location    String?
+  installedAt DateTime?        @map("installed_at") @db.Date
+  note        String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  workOrders  WorkOrder[]
+  logs        EquipmentLog[]
+
+  @@map("equipments")
+}
+
+/// 설비 상태 변경·점검·수리 이력
+model EquipmentLog {
+  id          Int              @id @default(autoincrement())
+  equipmentId Int              @map("equipment_id")
+  type        EquipmentLogType
+  fromStatus  EquipmentStatus? @map("from_status")
+  toStatus    EquipmentStatus? @map("to_status")
+  note        String?
+  userId      Int?             @map("user_id")
+  occurredAt  DateTime         @default(now()) @map("occurred_at")
+  equipment   Equipment        @relation(fields: [equipmentId], references: [id], onDelete: Cascade)
+  user        User?            @relation(fields: [userId], references: [id])
+
+  @@index([equipmentId, occurredAt])
+  @@map("equipment_logs")
+}
+
+// ─── 시스템 ──────────────────────────────────────────────────────────────────
+
+/// 사용자 (데모용: 로그인 없이 헤더에서 전환, 결재 권한 판단에 사용)
+model User {
+  id                 Int               @id @default(autoincrement())
+  employeeNo         String            @unique @map("employee_no")
+  name               String
+  department         String
+  role               UserRole          @default(OPERATOR)
+  active             Boolean           @default(true)
+  createdAt          DateTime          @default(now()) @map("created_at")
+  approvalsRequested ApprovalRequest[] @relation("ApprovalRequester")
+  approvalsDecided   ApprovalRequest[] @relation("ApprovalApprover")
+  equipmentLogs      EquipmentLog[]
+  shipments          Shipment[]
+
+  @@map("users")
+}
+
+/// 시스템 설정 (key-value)
+model SystemSetting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("system_settings")
+}
+
+/// 문서 번호 채번 (LOT, 입고, 수주, 출하, 작업지시, 실적, 결재 번호).
+/// INSERT ... ON CONFLICT DO UPDATE 로 원자적으로 증가시킵니다.
+model DocumentSequence {
+  key       String @id
+  lastValue Int    @default(0) @map("last_value")
+
+  @@map("document_sequences")
+}

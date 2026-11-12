@@ -1,0 +1,33 @@
+# Netlify 배포 설정 — 프론트(정적) + Express API(Netlify Function) + Neon PostgreSQL
+# Netlify 사이트 환경변수에 DATABASE_URL(Neon pooled 주소, 호스트에 -pooler)을 등록해야 합니다.
+
+[build]
+  # 의존성 설치(npm ci) 시 backend 의 postinstall 이 Prisma Client 를 생성합니다.
+  # 프론트 빌드 후 함수에 불필요한 파일 정리 (scripts/netlify-prune.mjs, NETLIFY=true 일 때만 동작)
+  command = "npm run build -w frontend && node scripts/netlify-prune.mjs"
+  publish = "frontend/dist"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[functions]
+  node_bundler = "esbuild"
+  # Netlify 번들러는 @prisma/client 를 항상 외부 모듈로 두고 생성된 클라이언트 폴더를 통째로 넣습니다.
+  # 크기는 빌드 명령의 netlify-prune 이 줄이고(47MB → 약 5MB), 여기서는 Lambda 용 엔진이 빠지지 않게 명시합니다.
+  included_files = [
+    "node_modules/.prisma/client/schema.prisma",
+    "node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node",
+  ]
+
+# API 요청 → Express 함수
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/:splat"
+  status = 200
+  force = true
+
+# SPA 라우팅: 새로고침해도 index.html 로
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

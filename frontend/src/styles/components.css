@@ -1,0 +1,74 @@
+/*
+ * ERP 공통 화면 요소의 의미 단위 클래스.
+ * 반복되는 조합(패널 머리글, 그리드 헤더, 코드값, 수치 셀 등)을 한곳에서 정의해
+ * 화면마다 같은 밀도와 모양을 유지합니다. 공통 컴포넌트(shared/components)가 이 클래스를 사용합니다.
+ */
+@layer components {
+  /* 코드값(품번, LOT, 문서번호): 고정폭, 원문 그대로 */
+  .code-text {
+    @apply font-mono text-[0.92em] tracking-tight;
+  }
+  .code-link {
+    @apply font-mono text-[0.92em] tracking-tight text-link hover:underline;
+  }
+  /* 수치 셀 */
+  .num {
+    @apply text-right tabular-nums;
+  }
+  .sub-text {
+    @apply text-[12px] text-muted-foreground;
+  }
+
+  /* 패널 */
+  .panel {
+    @apply rounded-lg border bg-card text-card-foreground shadow-xs;
+  }
+  .panel-header {
+    @apply flex min-h-10 items-center justify-between gap-2 rounded-t-lg border-b bg-panel-header px-4 py-2;
+  }
+  .panel-title {
+    @apply flex items-center gap-1.5 text-[13.5px] font-semibold [&_svg]:size-4 [&_svg]:text-muted-foreground;
+  }
+  .panel-body {
+    @apply p-4;
+  }
+
+  /* 조회조건 패널 */
+  .search-panel {
+    @apply flex flex-wrap items-end gap-x-4 gap-y-2 border-b bg-search-panel px-4 py-3;
+  }
+  .search-field {
+    @apply flex flex-col gap-1;
+  }
+  .field-label {
+    @apply flex items-center gap-1 text-[12.5px] font-medium text-foreground/75;
+  }
+
+  /* 데이터 그리드 */
+  .grid-table {
+    @apply w-full caption-bottom text-[13px];
+  }
+  .grid-table thead th {
+    @apply sticky top-0 z-10 h-8 whitespace-nowrap border-b bg-grid-header px-3 text-left align-middle text-[12px] font-semibold text-muted-foreground;
+  }
+  .grid-table tbody td {
+    @apply whitespace-nowrap border-b px-3 py-1.5 align-middle;
+  }
+  .grid-table tbody tr {
+    @apply transition-colors hover:bg-grid-row-hover;
+  }
+  .grid-table tbody tr[data-selected='true'] {
+    @apply bg-grid-row-selected;
+  }
+  .grid-table tbody tr:last-child td {
+    @apply border-b-0;
+  }
+
+  /* 설명 목록 (라벨-값) */
+  .desc-list {
+    @apply grid gap-x-6 gap-y-2 text-[13px];
+  }
+  .desc-term {
+    @apply text-muted-foreground;
+  }
+}

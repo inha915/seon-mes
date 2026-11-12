@@ -1,0 +1,37 @@
+{
+  "name": "seon-mes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "세온산업 MES/ERP - 자동차 부품 제조 MES 포트폴리오 (가상 데이터)",
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "concurrently -n api,web -c blue,green \"npm run dev -w backend\" \"npm run dev -w frontend\"",
+    "build": "npm run build -w backend && npm run build -w frontend",
+    "typecheck": "npm run typecheck -w backend && npm run typecheck -w frontend",
+    "test": "npm run test -w backend && npm run test -w frontend",
+    "i18n:check": "npm run i18n:check -w frontend",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:migrate": "npm run db:migrate -w backend",
+    "db:seed": "npm run db:seed -w backend",
+    "db:reset": "npm run db:reset -w backend",
+    "db:migrate:neon": "npm run db:migrate:neon -w backend",
+    "db:seed:neon": "npm run db:seed:neon -w backend",
+    "e2e": "node scripts/e2e-demo.mjs",
+    "screenshots": "node scripts/e2e-demo.mjs --screenshots"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2",
+    "playwright": "^1.52.0",
+    "rollup": "npm:@rollup/wasm-node@^4.68.2"
+  },
+  "overrides": {
+    "rollup": "$rollup"
+  }
+}
