@@ -5,6 +5,9 @@
 > A personal full-stack portfolio project for **Seon Industrial**, a fictional automotive parts manufacturer, covering sales orders, material receiving, production, approval, shipment and LOT traceability.
 > All suppliers, customers, items, equipment, work orders, results and users are **fictional data**.
 
+**🔗 Live demo: https://whimsical-lamington-99ca15.netlify.app**
+(Netlify + Netlify Functions + Neon PostgreSQL · public demo where anyone can enter data, so contents may change or be reset · the first request may take a few seconds while the database wakes up)
+
 ## Overview
 
 Seon Industrial is a fictional tier-2 supplier that buys steel sheets and makes brackets through `sheet cutting → press forming → inspection`.
