@@ -80,6 +80,6 @@ module.exports = {
   // 실패하더라도 캐시가 깨지지 않도록 되돌림
   onError: () => restore(process.cwd(), console.log),
   onEnd: () => restore(process.cwd(), console.log),
-  // 로컬 점검용
-  _internal: { targets, moveAway, restore },
+  // 주의: Netlify 는 플러그인이 이벤트 핸들러(onPreBuild·onBuild·onPostBuild·onSuccess·onError·onEnd)만
+  // 내보내도록 검사합니다. 다른 이름을 export 하면 플러그인 로딩이 실패합니다.
 };
