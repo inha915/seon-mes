@@ -101,8 +101,8 @@ seon-mes/
 │  │  └─ hooks/       현재 사용자
 │  ├─ styles/       theme.css(디자인 토큰) · components.css(ERP 공통 클래스) · index.css
 │  └─ i18n/locales/{ko,en}.json
-├─ netlify/functions/api.ts · netlify.toml   # 배포 설정 (Express → Netlify Function)
-├─ scripts/  e2e-demo.mjs (브라우저 E2E + 캡처) · netlify-prune.mjs
+├─ netlify/  functions/api.ts (Express → Netlify Function) · plugins/slim-function-deps (함수 크기 최적화) · netlify.toml
+├─ scripts/  e2e-demo.mjs (브라우저 E2E + 캡처)
 └─ docker-compose.yml                         # 개발용 PostgreSQL (호스트 포트 5433)
 ```
 
