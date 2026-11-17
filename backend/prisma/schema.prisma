@@ -1,9 +1,3 @@
-// 세온산업 MES 데이터 모델
-// 모든 데이터는 포트폴리오용 가상 데이터입니다.
-//
-// 도메인: 기준정보(Partner, Item, BomLine) · 영업(SalesOrder, Shipment) · 생산(WorkOrder, ProductionResult)
-//        재고(Receipt, Lot, InventoryTransaction) · 결재(ApprovalRequest) · 설비(Equipment) · 시스템(User, SystemSetting)
-
 generator client {
   provider      = "prisma-client-js"
   // native: 로컬 개발 환경, rhel-openssl-3.0.x: Netlify Functions(AWS Lambda, Amazon Linux 2023)
@@ -15,8 +9,7 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// ─── 코드 (DB 에는 고정 코드로 저장하고 화면 문구는 프론트 번역 리소스에서 매핑) ─────────────
-
+// enum 값은 고정 코드로 저장, 화면 문구는 프론트 번역 파일에서 매핑
 enum ItemType {
   RAW // 원자재
   FINISHED // 완제품
@@ -83,9 +76,7 @@ enum UserRole {
   ADMIN // 시스템 관리자
 }
 
-// ─── 기준정보 ────────────────────────────────────────────────────────────────
-
-/// 거래처 (공급사 / 고객사)
+// 기준정보
 model Partner {
   id          Int          @id @default(autoincrement())
   code        String       @unique
@@ -101,7 +92,6 @@ model Partner {
   @@map("partners")
 }
 
-/// 품목 (원자재 / 완제품)
 model Item {
   id           Int                    @id @default(autoincrement())
   code         String                 @unique
@@ -122,7 +112,6 @@ model Item {
   @@map("items")
 }
 
-/// BOM: 완제품 1개당 원자재 기준 소요량
 model BomLine {
   id          Int     @id @default(autoincrement())
   parentId    Int     @map("parent_id")
@@ -135,10 +124,7 @@ model BomLine {
   @@map("bom_lines")
 }
 
-// ─── 재고 ────────────────────────────────────────────────────────────────────
-
-/// LOT: 원자재 입고 LOT 또는 완제품 생산 LOT.
-/// qty 는 현재고이며 마이그레이션의 CHECK(qty >= 0) 제약으로 음수를 막습니다.
+// 재고
 model Lot {
   id               Int                    @id @default(autoincrement())
   lotNo            String                 @unique @map("lot_no")
@@ -157,7 +143,6 @@ model Lot {
   @@map("lots")
 }
 
-/// 원자재 입고. 입고 1건당 내부 LOT 1개를 발급합니다.
 model Receipt {
   id            Int                    @id @default(autoincrement())
   receiptNo     String                 @unique @map("receipt_no")
@@ -178,7 +163,6 @@ model Receipt {
   @@map("receipts")
 }
 
-/// 수불 이력. qty 는 부호 있는 변동 수량, balanceAfter 는 처리 직후 LOT 잔량입니다.
 model InventoryTransaction {
   id                 Int               @id @default(autoincrement())
   type               InventoryTxType
@@ -201,9 +185,7 @@ model InventoryTransaction {
   @@map("inventory_transactions")
 }
 
-// ─── 영업 ────────────────────────────────────────────────────────────────────
-
-/// 수주 (1수주 1품목)
+// 영업
 model SalesOrder {
   id         Int              @id @default(autoincrement())
   orderNo    String           @unique @map("order_no")
@@ -224,7 +206,6 @@ model SalesOrder {
   @@map("sales_orders")
 }
 
-/// 출하. 완제품 LOT 별 출하 수량은 ShipmentLine 에 기록합니다.
 model Shipment {
   id           Int                    @id @default(autoincrement())
   shipmentNo   String                 @unique @map("shipment_no")
@@ -256,9 +237,7 @@ model ShipmentLine {
   @@map("shipment_lines")
 }
 
-// ─── 생산 ────────────────────────────────────────────────────────────────────
-
-/// 작업지시
+// 생산
 model WorkOrder {
   id               Int               @id @default(autoincrement())
   workOrderNo      String            @unique @map("work_order_no")
@@ -282,7 +261,6 @@ model WorkOrder {
   @@map("work_orders")
 }
 
-/// 생산실적. work_order_id UNIQUE 로 같은 작업지시의 중복 확정을 DB 차원에서 막습니다.
 model ProductionResult {
   id            Int                    @id @default(autoincrement())
   resultNo      String                 @unique @map("result_no")
@@ -302,7 +280,6 @@ model ProductionResult {
   @@map("production_results")
 }
 
-/// 생산실적별 원자재 LOT 실제 사용량
 model MaterialConsumption {
   id                 Int              @id @default(autoincrement())
   productionResultId Int              @map("production_result_id")
@@ -316,10 +293,7 @@ model MaterialConsumption {
   @@map("material_consumptions")
 }
 
-// ─── 결재 ────────────────────────────────────────────────────────────────────
-
-/// 결재 요청. 생산실적은 승인 시점에 확정 트랜잭션을 실행합니다.
-/// 작업지시당 PENDING 요청은 하나만 허용합니다 (마이그레이션의 부분 UNIQUE 인덱스).
+// 결재
 model ApprovalRequest {
   id                 Int               @id @default(autoincrement())
   requestNo          String            @unique @map("request_no")
@@ -342,8 +316,7 @@ model ApprovalRequest {
   @@map("approval_requests")
 }
 
-// ─── 설비 ────────────────────────────────────────────────────────────────────
-
+// 설비
 model Equipment {
   id          Int              @id @default(autoincrement())
   code        String           @unique
@@ -360,7 +333,6 @@ model Equipment {
   @@map("equipments")
 }
 
-/// 설비 상태 변경·점검·수리 이력
 model EquipmentLog {
   id          Int              @id @default(autoincrement())
   equipmentId Int              @map("equipment_id")
@@ -377,9 +349,7 @@ model EquipmentLog {
   @@map("equipment_logs")
 }
 
-// ─── 시스템 ──────────────────────────────────────────────────────────────────
-
-/// 사용자 (데모용: 로그인 없이 헤더에서 전환, 결재 권한 판단에 사용)
+// 시스템
 model User {
   id                 Int               @id @default(autoincrement())
   employeeNo         String            @unique @map("employee_no")
@@ -396,7 +366,6 @@ model User {
   @@map("users")
 }
 
-/// 시스템 설정 (key-value)
 model SystemSetting {
   key       String   @id
   value     Json
@@ -405,8 +374,6 @@ model SystemSetting {
   @@map("system_settings")
 }
 
-/// 문서 번호 채번 (LOT, 입고, 수주, 출하, 작업지시, 실적, 결재 번호).
-/// INSERT ... ON CONFLICT DO UPDATE 로 원자적으로 증가시킵니다.
 model DocumentSequence {
   key       String @id
   lastValue Int    @default(0) @map("last_value")

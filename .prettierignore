@@ -1,0 +1,8 @@
+node_modules
+dist
+package-lock.json
+*.md
+docs
+backend/prisma/migrations
+frontend/src/i18n/locales
+.netlify

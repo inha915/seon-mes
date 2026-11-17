@@ -1,9 +1,5 @@
-import { Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client'
 
-/**
- * API 오류 코드. 프론트엔드는 이 코드를 번역 키(errors.<CODE>)로 매핑합니다.
- * 메시지는 개발자용 영문 설명이며 화면에 직접 노출하지 않습니다.
- */
 export const ErrorCode = {
   VALIDATION_ERROR: 'VALIDATION_ERROR',
   NOT_FOUND: 'NOT_FOUND',
@@ -29,9 +25,9 @@ export const ErrorCode = {
   // 설비
   EQUIPMENT_UNAVAILABLE: 'EQUIPMENT_UNAVAILABLE',
   INTERNAL_ERROR: 'INTERNAL_ERROR',
-} as const;
+} as const
 
-export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode];
+export type ErrorCode = (typeof ErrorCode)[keyof typeof ErrorCode]
 
 export class AppError extends Error {
   constructor(
@@ -40,21 +36,26 @@ export class AppError extends Error {
     message: string,
     public readonly details?: Record<string, unknown>,
   ) {
-    super(message);
-    this.name = 'AppError';
+    super(message)
+    this.name = 'AppError'
   }
 }
 
 export const notFound = (resource: string, key: string | number) =>
-  new AppError(404, ErrorCode.NOT_FOUND, `${resource} not found: ${key}`, { resource, key });
+  new AppError(404, ErrorCode.NOT_FOUND, `${resource} not found: ${key}`, {
+    resource,
+    key,
+  })
 
-/** Prisma 고유 제약 위반(P2002) 여부와 대상 컬럼 */
 export function uniqueViolationTarget(err: unknown): string[] | null {
-  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-    const target = err.meta?.target;
-    if (Array.isArray(target)) return target.map(String);
-    if (typeof target === 'string') return [target];
-    return [];
+  if (
+    err instanceof Prisma.PrismaClientKnownRequestError &&
+    err.code === 'P2002'
+  ) {
+    const target = err.meta?.target
+    if (Array.isArray(target)) return target.map(String)
+    if (typeof target === 'string') return [target]
+    return []
   }
-  return null;
+  return null
 }

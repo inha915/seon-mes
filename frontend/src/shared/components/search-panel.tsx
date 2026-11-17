@@ -1,32 +1,28 @@
-import { RotateCcw, Search } from 'lucide-react';
-import type { ReactNode } from 'react';
-import { useTranslation } from 'react-i18next';
-import { Button } from '@/shared/ui/button';
-import { cn } from '@/shared/lib/utils';
+import { RotateCcw, Search } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Button } from '@/shared/ui/button'
+import { cn } from '@/shared/lib/utils'
 
-/**
- * 조회조건 패널 — 그리드 위에 놓는 검색 영역. Enter 또는 [조회]로 onSearch, [초기화]로 onReset.
- * 조건 값은 화면이 상태로 관리하고, 조회 버튼을 눌렀을 때만 적용합니다(ERP 관례).
- */
 export function SearchPanel({
   onSearch,
   onReset,
   children,
   className,
 }: {
-  onSearch: () => void;
-  onReset?: () => void;
-  children: ReactNode;
-  className?: string;
+  onSearch: () => void
+  onReset?: () => void
+  children: ReactNode
+  className?: string
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
   return (
     <form
       role="search"
       className={cn('search-panel', className)}
       onSubmit={(e) => {
-        e.preventDefault();
-        onSearch();
+        e.preventDefault()
+        onSearch()
       }}
     >
       {children}
@@ -41,31 +37,38 @@ export function SearchPanel({
         )}
       </div>
     </form>
-  );
+  )
 }
 
-export function SearchField({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
+export function SearchField({
+  label,
+  children,
+  className,
+}: {
+  label: string
+  children: ReactNode
+  className?: string
+}) {
   return (
     <label className={cn('search-field', className)}>
       <span className="field-label">{label}</span>
       {children}
     </label>
-  );
+  )
 }
 
-/** 기간 조건 (시작일 ~ 종료일) */
 export function DateRangeField({
   label,
   from,
   to,
   onChange,
 }: {
-  label: string;
-  from: string;
-  to: string;
-  onChange: (range: { from: string; to: string }) => void;
+  label: string
+  from: string
+  to: string
+  onChange: (range: { from: string; to: string }) => void
 }) {
-  const { t } = useTranslation();
+  const { t } = useTranslation()
   return (
     <div className="search-field">
       <span className="field-label">{label}</span>
@@ -87,5 +90,5 @@ export function DateRangeField({
         />
       </div>
     </div>
-  );
+  )
 }

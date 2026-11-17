@@ -1,8 +1,8 @@
-# Netlify 배포 설정 — 프론트(정적) + Express API(Netlify Function) + Neon PostgreSQL
-# Netlify 사이트 환경변수에 DATABASE_URL(Neon pooled 주소, 호스트에 -pooler)을 등록해야 합니다.
+# 프론트는 정적 배포, API 는 Netlify Function 하나로 실행
+# 사이트 환경변수에 DATABASE_URL (Neon pooled 주소) 필요
 
 [build]
-  # 의존성 설치(npm ci) 시 backend 의 postinstall 이 Prisma Client 를 생성합니다.
+  # prisma client 는 backend postinstall 에서 생성됨
   command = "npm run build -w frontend"
   publish = "frontend/dist"
 
@@ -11,25 +11,24 @@
 
 [functions]
   node_bundler = "esbuild"
-  # Netlify 번들러는 @prisma/client 를 항상 외부 모듈로 두고 생성된 클라이언트 폴더를 통째로 넣습니다.
-  # 크기는 아래 slim-function-deps 플러그인이 번들링 동안만 줄이고(약 15MB), 여기서는 Lambda 용 엔진이 빠지지 않게 명시합니다.
+  # lambda 엔진이 빠지지 않게 명시
   included_files = [
     "node_modules/.prisma/client/schema.prisma",
     "node_modules/.prisma/client/libquery_engine-rhel-openssl-3.0.x.so.node",
   ]
 
-# 함수 번들링 직전에 불필요한 파일을 옮겼다가 직후 되돌림 (node_modules 캐시 보존)
+# 함수 번들 크기 줄이기 (netlify/plugins/slim-function-deps)
 [[plugins]]
   package = "/netlify/plugins/slim-function-deps"
 
-# API 요청 → Express 함수
+# /api → 함수
 [[redirects]]
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
   force = true
 
-# SPA 라우팅: 새로고침해도 index.html 로
+# SPA
 [[redirects]]
   from = "/*"
   to = "/index.html"

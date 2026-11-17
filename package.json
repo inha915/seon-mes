@@ -24,11 +24,14 @@
     "db:migrate:neon": "npm run db:migrate:neon -w backend",
     "db:seed:neon": "npm run db:seed:neon -w backend",
     "e2e": "node scripts/e2e-demo.mjs",
-    "screenshots": "node scripts/e2e-demo.mjs --screenshots"
+    "screenshots": "node scripts/e2e-demo.mjs --screenshots",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "concurrently": "^9.1.2",
     "playwright": "^1.52.0",
+    "prettier": "^3.10.1",
     "rollup": "npm:@rollup/wasm-node@^4.68.2"
   },
   "overrides": {

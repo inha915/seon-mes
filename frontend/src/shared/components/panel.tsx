@@ -1,7 +1,6 @@
-import type { ReactNode } from 'react';
-import { cn } from '@/shared/lib/utils';
+import type { ReactNode } from 'react'
+import { cn } from '@/shared/lib/utils'
 
-/** 제목줄이 있는 업무 패널 (폼, 그리드, 상세 정보를 담는 기본 틀) */
 export function Panel({
   title,
   icon,
@@ -11,13 +10,12 @@ export function Panel({
   children,
   ...rest
 }: {
-  title?: ReactNode;
-  icon?: ReactNode;
-  actions?: ReactNode;
-  className?: string;
-  /** 본문 여백. 그리드처럼 꽉 채울 때는 'p-0' */
-  bodyClassName?: string;
-  children: ReactNode;
+  title?: ReactNode
+  icon?: ReactNode
+  actions?: ReactNode
+  className?: string
+  bodyClassName?: string
+  children: ReactNode
 } & Omit<React.HTMLAttributes<HTMLDivElement>, 'title'>) {
   return (
     <div className={cn('panel', className)} {...rest}>
@@ -32,5 +30,5 @@ export function Panel({
       )}
       <div className={cn('panel-body', bodyClassName)}>{children}</div>
     </div>
-  );
+  )
 }

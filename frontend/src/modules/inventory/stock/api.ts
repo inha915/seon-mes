@@ -1,27 +1,38 @@
-import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { api } from '@/shared/lib/api';
-import { queryKeys } from '@/shared/lib/query';
-import type { InventoryTxType, ItemType, Paged } from '@/shared/types';
-import type { InventoryTransaction, ItemStock, LotStock, LotTrace } from '../types';
+import { keepPreviousData, useQuery } from '@tanstack/react-query'
+import { api } from '@/shared/lib/api'
+import { queryKeys } from '@/shared/lib/query'
+import type { InventoryTxType, ItemType, Paged } from '@/shared/types'
+import type {
+  InventoryTransaction,
+  ItemStock,
+  LotStock,
+  LotTrace,
+} from '../types'
 
 export interface StockFilter {
-  q?: string;
-  lotNo?: string;
-  type?: ItemType;
-  from?: string;
-  to?: string;
-  includeEmpty?: boolean;
-  txType?: InventoryTxType;
-  page?: number;
-  pageSize?: number;
+  q?: string
+  lotNo?: string
+  type?: ItemType
+  from?: string
+  to?: string
+  includeEmpty?: boolean
+  txType?: InventoryTxType
+  page?: number
+  pageSize?: number
 }
 
 export function useItemStock(f: StockFilter) {
   return useQuery({
     queryKey: [...queryKeys.inventory, 'items', f],
-    queryFn: () => api.get<Paged<ItemStock>>('/inventory/items', { q: f.q, type: f.type, page: f.page, pageSize: f.pageSize }),
+    queryFn: () =>
+      api.get<Paged<ItemStock>>('/inventory/items', {
+        q: f.q,
+        type: f.type,
+        page: f.page,
+        pageSize: f.pageSize,
+      }),
     placeholderData: keepPreviousData,
-  });
+  })
 }
 
 export function useLotStock(f: StockFilter) {
@@ -39,7 +50,7 @@ export function useLotStock(f: StockFilter) {
         pageSize: f.pageSize,
       }),
     placeholderData: keepPreviousData,
-  });
+  })
 }
 
 export function useTransactions(f: StockFilter) {
@@ -56,7 +67,7 @@ export function useTransactions(f: StockFilter) {
         pageSize: f.pageSize,
       }),
     placeholderData: keepPreviousData,
-  });
+  })
 }
 
 export function useLotTrace(lotNo: string | undefined) {
@@ -64,5 +75,5 @@ export function useLotTrace(lotNo: string | undefined) {
     queryKey: [...queryKeys.lots, lotNo],
     queryFn: () => api.get<LotTrace>(`/lots/${encodeURIComponent(lotNo!)}`),
     enabled: !!lotNo,
-  });
+  })
 }

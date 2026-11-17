@@ -1,48 +1,48 @@
-import { Router } from 'express';
-import { approvalRouter } from './modules/approval/approval.routes.js';
-import { getDashboard } from './modules/dashboard/dashboard.service.js';
-import { equipmentRouter } from './modules/equipment/equipment.routes.js';
-import { lotsRouter } from './modules/inventory/lots/lots.routes.js';
-import { receiptsRouter } from './modules/inventory/receipts/receipts.routes.js';
-import { inventoryRouter } from './modules/inventory/stock/inventory.routes.js';
-import { itemsRouter } from './modules/master/items/items.routes.js';
-import { partnersRouter } from './modules/master/partners/partners.routes.js';
-import { productionRouter } from './modules/production/results/production.routes.js';
-import { workOrdersRouter } from './modules/production/work-orders/work-orders.routes.js';
-import { salesOrdersRouter } from './modules/sales/orders/sales-orders.routes.js';
-import { shipmentsRouter } from './modules/sales/shipments/shipments.routes.js';
-import { settingsRouter } from './modules/system/settings/settings.routes.js';
-import { usersRouter } from './modules/system/users/users.routes.js';
+import { Router } from 'express'
+import approvalRouter from './module/approval/approval.router.js'
+import dashboardRouter from './module/dashboard/dashboard.router.js'
+import equipmentRouter from './module/equipment/equipment.router.js'
+import lotsRouter from './module/inventory/lots/lots.router.js'
+import receiptsRouter from './module/inventory/receipts/receipts.router.js'
+import inventoryRouter from './module/inventory/stock/inventory.router.js'
+import itemsRouter from './module/master/items/items.router.js'
+import partnersRouter from './module/master/partners/partners.router.js'
+import productionRouter from './module/production/results/production.router.js'
+import workOrdersRouter from './module/production/work-orders/work-orders.router.js'
+import salesOrdersRouter from './module/sales/orders/sales-orders.router.js'
+import shipmentsRouter from './module/sales/shipments/shipments.router.js'
+import settingsRouter from './module/system/settings/settings.router.js'
+import usersRouter from './module/system/users/users.router.js'
 
-/**
- * API 라우트 등록 — 화면 메뉴와 같은 업무 대분류 순서로 정리합니다.
- */
-export const apiRouter = Router();
+const router = Router()
 
-apiRouter.get('/health', (_req, res) => {
-  res.json({ status: 'ok' });
-});
-apiRouter.get('/dashboard', async (_req, res) => {
-  res.json(await getDashboard());
-});
+router.get('/health', (_req, res) => {
+  res.json({ status: 'ok' })
+})
+
+router.use('/dashboard', dashboardRouter)
 
 // 기준정보
-apiRouter.use('/partners', partnersRouter);
-apiRouter.use('/items', itemsRouter);
+router.use('/partners', partnersRouter)
+router.use('/items', itemsRouter)
+
 // 영업
-apiRouter.use('/sales-orders', salesOrdersRouter);
-apiRouter.use('/shipments', shipmentsRouter);
+router.use('/sales-orders', salesOrdersRouter)
+router.use('/shipments', shipmentsRouter)
+
 // 생산
-apiRouter.use('/work-orders', workOrdersRouter);
-apiRouter.use('/production-results', productionRouter);
+router.use('/work-orders', workOrdersRouter)
+router.use('/production-results', productionRouter)
+
 // 재고
-apiRouter.use('/receipts', receiptsRouter);
-apiRouter.use('/inventory', inventoryRouter);
-apiRouter.use('/lots', lotsRouter);
-// 결재
-apiRouter.use('/approvals', approvalRouter);
-// 설비
-apiRouter.use('/equipments', equipmentRouter);
-// 시스템
-apiRouter.use('/users', usersRouter);
-apiRouter.use('/settings', settingsRouter);
+router.use('/receipts', receiptsRouter)
+router.use('/inventory', inventoryRouter)
+router.use('/lots', lotsRouter)
+
+// 결재 / 설비 / 시스템
+router.use('/approvals', approvalRouter)
+router.use('/equipments', equipmentRouter)
+router.use('/users', usersRouter)
+router.use('/settings', settingsRouter)
+
+export default router
